@@ -19,11 +19,13 @@ var Environment = {
     init : function() {
         this.geometry = new THREE.IcosahedronGeometry(2, 0);
 
-        this.material = new THREE.MeshPhongMaterial
-            ({color: 0xffdcb3, 
-             shininess: 0,
-             shading: THREE.FlatShading, 
-             emissive: 0xff5757 });
+        this.material = new THREE.MeshPhongMaterial({
+            color: 0xffdcb3,
+//            transparent: true, opacity: 0.5,
+            shininess: 30,
+            shading: THREE.FlatShading,
+            emissive: 0xff5757
+        });
 
         this.mesh = new THREE.Mesh(this.geometry, this.material);
         this.mesh.rotation.set(Math.PI/6.0,0,Math.PI/2.0);
@@ -48,7 +50,7 @@ var Snake = {
              emissive: 0x617154 });
 
         this.mesh = new THREE.Mesh(this.geometry, this.material);
-        this.mesh.position.set(-3,3,0);
+        this.mesh.position.set(-3,0,0);
         scene.add(this.mesh);
     },
         
@@ -64,17 +66,24 @@ function gravityAttract() {
     var raycaster = new THREE.Raycaster();
     var rayOrigin = Snake.mesh.position.clone();
     var rayFinalPos = Environment.mesh.position.clone();
-    var rayDir = rayFinalPos.sub(rayOrigin);
+    var rayDir = rayFinalPos.sub(rayOrigin).normalize();
     
-    raycaster.set(rayOrigin, rayDir.normalize());
+    raycaster.set(rayOrigin, rayDir);
 
     var intersects = raycaster.intersectObject(Environment.mesh);
     var intersectionPoint = intersects[0];
     
     if (intersectionPoint != undefined) {
-        Snake.mesh.position.x = intersectionPoint.point.x;
-        Snake.mesh.position.y = intersectionPoint.point.y;
-        Snake.mesh.position.z = intersectionPoint.point.z;
+
+        var offset = rayDir.negate().multiplyScalar(0.5);
+        console.log(offset);
+        console.log(intersectionPoint.point);
+        
+//        var newPos = offset.x
+        Snake.mesh.position.x = offset.x + intersectionPoint.point.x;
+        Snake.mesh.position.y = offset.y + intersectionPoint.point.y;
+        Snake.mesh.position.z = offset.z + intersectionPoint.point.z;
+//        var point = offset * intersection.
 
 //        console.log(intersectionPoint.point);
     }
@@ -86,7 +95,7 @@ function gravityAttract() {
 //Calculate animations, and render the scene
 function update() {
     requestAnimationFrame(update);
-//    Environment.animate();
+    Environment.animate();
     Snake.animate();
     gravityAttract();
 
