@@ -26,13 +26,14 @@ var Environment = {
              emissive: 0xff5757 });
 
         this.mesh = new THREE.Mesh(this.geometry, this.material);
+        this.mesh.rotation.set(Math.PI/6.0,0,Math.PI/2.0);
         scene.add(this.mesh);
     },
         
     animate : function() {
         this.mesh.rotation.x += 0.01;
         this.mesh.rotation.y += 0.01;
-        this.mesh.position.x += 0.01;
+//        this.mesh.position.x += 0.01;
     }
 };
 
@@ -47,7 +48,7 @@ var Snake = {
              emissive: 0x617154 });
 
         this.mesh = new THREE.Mesh(this.geometry, this.material);
-        this.mesh.position.set(-1,0,0);
+        this.mesh.position.set(-3,3,0);
         scene.add(this.mesh);
     },
         
@@ -56,42 +57,43 @@ var Snake = {
     }
 };
 
-//Player (snake) mesh setup
-//var Snake = function() {
-//    var geometry, material, mesh,
-//    
-//    function init() {
-//        geometry = new THREE.SphereGeometry(0.5);
-//
-//        material = new THREE.MeshPhongMaterial
-//            ({color: 0x7cc73c, 
-//             shininess: 0,
-//             shading: THREE.FlatShading, 
-//             emissive: 0x617154 });
-//
-//        mesh = new THREE.Mesh(geometry, material);
-//        mesh.position.set(-1,0,0);
-//        scene.add(mesh);
-//    };
-//        
-//    function animate() {
-//        mesh.rotation.x += 0.01;
-//    };
-//    
-//};
-
 Snake.init();
 Environment.init();
 
-//Draw loop that gets called at 60fps
-function draw() {
-    requestAnimationFrame(draw);
+function gravityAttract() {
+    var raycaster = new THREE.Raycaster();
+    var rayOrigin = Snake.mesh.position.clone();
+    var rayFinalPos = Environment.mesh.position.clone();
+    var rayDir = rayFinalPos.sub(rayOrigin);
+    
+    raycaster.set(rayOrigin, rayDir.normalize());
 
-    Environment.animate();
+    var intersects = raycaster.intersectObject(Environment.mesh);
+    var intersectionPoint = intersects[0];
+    
+    if (intersectionPoint != undefined) {
+        Snake.mesh.position.x = intersectionPoint.point.x;
+        Snake.mesh.position.y = intersectionPoint.point.y;
+        Snake.mesh.position.z = intersectionPoint.point.z;
+
+//        console.log(intersectionPoint.point);
+    }
+
+
+}
+
+//Update loop that gets called at 60fps,
+//Calculate animations, and render the scene
+function update() {
+    requestAnimationFrame(update);
+//    Environment.animate();
     Snake.animate();
+    gravityAttract();
+
+    
     renderer.render(scene, camera);
 };
-draw();
+update();
 
 window.addEventListener('resize', onWindowResize, false);
 function onWindowResize() {
