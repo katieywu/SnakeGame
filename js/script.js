@@ -40,9 +40,9 @@ var Environment = {
 };
 
 var Snake = {
-    init : function() {
-        this.geometry = new THREE.SphereGeometry(0.5);
-
+    init : function(radius) {
+        this.geometry = new THREE.SphereGeometry(radius);
+        this.radius = radius;
         this.material = new THREE.MeshPhongMaterial
             ({color: 0x7cc73c, 
              shininess: 0,
@@ -59,7 +59,7 @@ var Snake = {
     }
 };
 
-Snake.init();
+Snake.init(0.2);
 Environment.init();
 
 function gravityAttract() {
@@ -75,8 +75,8 @@ function gravityAttract() {
     
     if (intersectionPoint != undefined) {
 
-        var offset = rayDir.negate().multiplyScalar(0.5);
-        console.log(offset);
+        var offset = rayDir.negate().multiplyScalar(Snake.radius);
+        console.log(Snake.radius);
         console.log(intersectionPoint.point);
         
 //        var newPos = offset.x
