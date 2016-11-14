@@ -62,16 +62,34 @@ var Snake = {
             shading: THREE.FlatShading,
             emissive: 0x617154
         });
+        this.segments = [];
 
         this.mesh = new THREE.Mesh(this.geometry, this.material);
-        this.mesh.position.set(0, 0, 1.7595);
+        this.mesh.castShadow = true;
+//        this.mesh.position.set(0, 0, 1.7595);
+
+        var head = new Node(this.mesh, new THREE.Vector3(0,0,1.7595));
+        this.segments.push(head); //push the head to the list
         
-        this.children = {};
-        this.mesh.rotateZ(0.5);
+//        var child = this.mesh.clone(); //push first child to the list
+//        child.position.set(0, -radius * 2, 1.7595);
+//        this.segments.push(child);
+//
+//        var child2 = this.mesh.clone(); //push second child to the list
+//        child2.position.set(0, -radius * 4, 1.7595);
+//        this.segments.push(child2);
+        
+        var child = new Node(this.mesh, new THREE.Vector3(0, -radius * 2, 1.7595));
+        this.segments.push(child);
+        
+        var child2 = new Node(this.mesh, new THREE.Vector3(0, -radius * 4, 1.7595));
+        this.segments.push(child2);
+        
+        
+        scene.add(child.mesh);
+        scene.add(child2.mesh);
 
-//        this.mesh.add(camera);
-
-        scene.add(this.mesh);
+        scene.add(head.mesh);
     },
 
     animate: function () {
@@ -79,79 +97,94 @@ var Snake = {
     },
 
     addChild: function () {
-
+        this.children.push(new THREE.Vector3(-0.1, 0, 1.7595));
     },
 
     updatePosition: function (u) {
+        var head = this.segments[0];
         if (keyPressed == '38') {
             // up arrow
-            rotateAboutWorldAxis(this.mesh, new THREE.Vector3(1,0,0), -0.005);
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), -0.005);
 
         } else if (keyPressed == '40') {
             // down arrow
-            rotateAboutWorldAxis(this.mesh, new THREE.Vector3(1,0,0), 0.005);
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), 0.005);
 
         } else if (keyPressed == '37') {
             // left arrow
-            rotateAboutWorldAxis(this.mesh, new THREE.Vector3(0,1,0), -0.005);
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), -0.005);
 
         } else if (keyPressed == '39') {
             // right arrow
-//            this.mesh.quaternion;
-//            var a = new THREE.Vector3( 1, 0, 0 );
-//            a = this.mesh.worldToLocal(a);
-//            console.log(a);
-            rotateAboutWorldAxis(this.mesh, new THREE.Vector3(0,1,0), 0.005);
-//            this.mesh = this.mesh.translateX(0.01);
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), 0.005);
+        }
+        
+        //update the positions of the segments accordingly
+        console.log(head.position);
+        
+        for (var i = 0; i < this.segments.length; i++) {
+            this.gravityAttract(this.segments[i].mesh);
+//            console.log(this);
+            console.log(this.segments[i]);
+        }
+    },
+
+    gravityAttract: function (node) {
+        var offset, raycaster, rayOrigin, rayFinalPos, rayDir,
+            intersects, intersectionPoint;
+
+        raycaster = new THREE.Raycaster();
+        rayOrigin = node.position.clone();
+        rayFinalPos = Environment.mesh.position.clone();
+        rayDir = rayFinalPos.sub(rayOrigin).normalize();
+
+        raycaster.set(rayOrigin, rayDir);
+
+        intersects = raycaster.intersectObject(Environment.mesh);
+        intersectionPoint = intersects[0];
+
+        if (intersectionPoint != undefined) {
+
+            offset = rayDir.negate().multiplyScalar(Snake.radius);
+            //        console.log(Snake.radius);
+            //        console.log(intersectionPoint.point);
+
+            node.position.x = offset.x + intersectionPoint.point.x;
+            node.position.y = offset.y + intersectionPoint.point.y;
+            node.position.z = offset.z + intersectionPoint.point.z;
+
         }
     }
 };
 
+function Node(m, pos) {
+    this.mesh = m.clone();
+    this.mesh.position.x = pos.x;
+    this.mesh.position.y = pos.y;
+    this.mesh.position.z = pos.z;
+
+    this.position = this.mesh.position;
+    this.queue = [];
+}
+
 function rotateAboutWorldAxis(object, axis, angle) {
-  var rotationMatrix = new THREE.Matrix4();
-  rotationMatrix.makeRotationAxis( axis.normalize(), angle );
-  var currentPos = new THREE.Vector4(object.position.x, object.position.y, object.position.z, 1);
-  var newPos = currentPos.applyMatrix4(rotationMatrix);
-  object.position.x = newPos.x;
-  object.position.y = newPos.y;
-  object.position.z = newPos.z;
+    var rotationMatrix = new THREE.Matrix4();
+    rotationMatrix.makeRotationAxis(axis.normalize(), angle);
+    var currentPos = new THREE.Vector4(object.position.x, object.position.y, object.position.z, 1);
+    var newPos = currentPos.applyMatrix4(rotationMatrix);
+
+    object.position.x = newPos.x;
+    object.position.y = newPos.y;
+    object.position.z = newPos.z;
+    
+//    console.log(object.children);
+    return newPos;
+
 }
 
 Snake.init(0.15);
 Environment.init();
 
-function gravityAttract() {
-    var offset, raycaster, rayOrigin, rayFinalPos, rayDir,
-        intersects, intersectionPoint;
-    
-    raycaster = new THREE.Raycaster();
-    rayOrigin = Snake.mesh.position.clone();
-    rayFinalPos = Environment.mesh.position.clone();
-    rayDir = rayFinalPos.sub(rayOrigin).normalize();
-    
-    raycaster.set(rayOrigin, rayDir);
-
-    intersects = raycaster.intersectObject(Environment.mesh);
-    intersectionPoint = intersects[0];
-    
-    if (intersectionPoint != undefined) {
-
-        offset = rayDir.negate().multiplyScalar(Snake.radius);
-//        console.log(Snake.radius);
-//        console.log(intersectionPoint.point);
-        
-        Snake.mesh.position.x = offset.x + intersectionPoint.point.x;
-        Snake.mesh.position.y = offset.y + intersectionPoint.point.y;
-        Snake.mesh.position.z = offset.z + intersectionPoint.point.z;
-
-//        console.log(offset.x + intersectionPoint.point.x);
-//        console.log(offset.y + intersectionPoint.point.y);
-//        console.log(offset.z + intersectionPoint.point.z);
-
-    }
-
-
-}
 
 
 //Update loop that gets called at 60fps,
@@ -167,14 +200,14 @@ function update() {
 
     requestAnimationFrame(update);
     
-//    Environment.animate();
+    Environment.animate();
 //    Snake.animate();
     
     //call updateposition
     Snake.updatePosition(u);
     
-    //update gravity so snake always sticks to surface
-    gravityAttract();
+//    update gravity so snake always sticks to surface
+//    Snake.gravityAttract(Snake.mesh);
     
     renderer.render(scene, camera);
 };
