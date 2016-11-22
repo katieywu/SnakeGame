@@ -15,12 +15,16 @@ function checkKey(e) {
 //The basics of a 3D scene, the scene graph, camera, light, and renderer
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000 );
-//var light = new THREE.DirectionalLight( 0xefefff, 1.0 );
-//				light.position.set( 1, 1, 1 ).normalize();
+
+//var dirLight = new THREE.DirectionalLight( 0xefefff, 0.1 );
+//dirLight.position.set( 1, 1, 1 ).normalize();
+//dirLight.castShadow = true;
+
 camera.position.z = 10;
 
 var light = new THREE.HemisphereLight( 0xffffdf, 0x080820, 1 );
 scene.add(light);
+
 
 var renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -42,6 +46,8 @@ var Environment = {
 
         this.mesh = new THREE.Mesh(this.geometry, this.material);
         this.mesh.rotation.set(Math.PI / 6.0, 0, Math.PI / 2.0);
+        this.mesh.receiveShadow = true;
+        this.mesh.castShadow = true;
         scene.add(this.mesh);
     },
 
@@ -63,29 +69,23 @@ var Snake = {
             emissive: 0x617154
         });
         this.segments = [];
+        
+        this.queue = [];
 
         this.mesh = new THREE.Mesh(this.geometry, this.material);
         this.mesh.castShadow = true;
-//        this.mesh.position.set(0, 0, 1.7595);
+        this.mesh.receiveShadow = true;
 
-        var head = new Node(this.mesh, new THREE.Vector3(0,0,1.7595));
+        var head = new Node(this.mesh, new THREE.Vector3(0, 0, 1.7595), "head");
         this.segments.push(head); //push the head to the list
-        
-//        var child = this.mesh.clone(); //push first child to the list
-//        child.position.set(0, -radius * 2, 1.7595);
-//        this.segments.push(child);
-//
-//        var child2 = this.mesh.clone(); //push second child to the list
-//        child2.position.set(0, -radius * 4, 1.7595);
-//        this.segments.push(child2);
-        
-        var child = new Node(this.mesh, new THREE.Vector3(0, -radius * 2, 1.7595));
+
+        var child = new Node(this.mesh, new THREE.Vector3(0, -radius * 2, 1.7595), "child1");
         this.segments.push(child);
-        
-        var child2 = new Node(this.mesh, new THREE.Vector3(0, -radius * 4, 1.7595));
+
+        var child2 = new Node(this.mesh, new THREE.Vector3(0, -radius * 4, 1.7595), "child2");
         this.segments.push(child2);
-        
-        
+
+
         scene.add(child.mesh);
         scene.add(child2.mesh);
 
@@ -101,32 +101,61 @@ var Snake = {
     },
 
     updatePosition: function (u) {
+        for (var i = 0; i < this.segments.length; i++) {
+            this.gravityAttract(this.segments[i].mesh);
+        }
         var head = this.segments[0];
         if (keyPressed == '38') {
             // up arrow
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), -0.005);
+            head.prevPos = head.mesh.position.clone();
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), -0.01);
+            this.gravityAttract(head.mesh);
+            this.updateTail();
 
         } else if (keyPressed == '40') {
             // down arrow
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), 0.005);
+            head.prevPos = head.mesh.position.clone();
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), 0.01);
+            this.gravityAttract(head.mesh);
+            this.updateTail();
 
         } else if (keyPressed == '37') {
             // left arrow
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), -0.005);
+            head.prevPos = head.mesh.position.clone();
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), -0.01);
+            this.gravityAttract(head.mesh);
+            this.updateTail();
 
         } else if (keyPressed == '39') {
             // right arrow
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), 0.005);
+            head.prevPos = head.mesh.position.clone();
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), 0.01);
+            this.gravityAttract(head.mesh);
+            this.updateTail();
         }
-        
+
         //update the positions of the segments accordingly
-        console.log(head.position);
+
+    },
+
+    updateTail: function () {
         
-        for (var i = 0; i < this.segments.length; i++) {
-            this.gravityAttract(this.segments[i].mesh);
-//            console.log(this);
-            console.log(this.segments[i]);
-        }
+//        for (var i = 1; i < this.segments.length; i++) {
+//            var tailNode = this.segments[i];
+//            var tailNodePos = tailNode.mesh.position.clone();
+//
+//            var prevNode = this.segments[i - 1];
+//            var prevNodePos = prevNode.prevPos.clone();
+//
+//            //store the current position of the node as it's "prevPos"
+//            tailNode.prevPos = tailNode.mesh.position.clone();
+//
+//            var prevToTailDir = tailNodePos.sub(prevNodePos).normalize();
+//            var offset = prevToTailDir.multiplyScalar(this.radius * 2);
+//            var newPos = prevNode.prevPos.add(offset);
+//            tailNode.setPos(newPos);
+//        }
+        
     },
 
     gravityAttract: function (node) {
@@ -157,14 +186,21 @@ var Snake = {
     }
 };
 
-function Node(m, pos) {
+function Node(m, pos, name) {
+    this.name = name;
     this.mesh = m.clone();
     this.mesh.position.x = pos.x;
     this.mesh.position.y = pos.y;
     this.mesh.position.z = pos.z;
 
-    this.position = this.mesh.position;
-    this.queue = [];
+//    this.curPos = this.mesh.position;
+    this.prevPos = this.mesh.position.clone();
+        
+    this.setPos = function(pos) {
+        this.mesh.position.x = pos.x;
+        this.mesh.position.y = pos.y;
+        this.mesh.position.z = pos.z;
+    }
 }
 
 function rotateAboutWorldAxis(object, axis, angle) {
@@ -172,14 +208,15 @@ function rotateAboutWorldAxis(object, axis, angle) {
     rotationMatrix.makeRotationAxis(axis.normalize(), angle);
     var currentPos = new THREE.Vector4(object.position.x, object.position.y, object.position.z, 1);
     var newPos = currentPos.applyMatrix4(rotationMatrix);
-
+    
+    var dist = object.position.distanceTo(newPos);
+//    console.log(dist);
     object.position.x = newPos.x;
     object.position.y = newPos.y;
     object.position.z = newPos.z;
     
 //    console.log(object.children);
     return newPos;
-
 }
 
 Snake.init(0.15);
@@ -200,7 +237,7 @@ function update() {
 
     requestAnimationFrame(update);
     
-    Environment.animate();
+//    Environment.animate();
 //    Snake.animate();
     
     //call updateposition
