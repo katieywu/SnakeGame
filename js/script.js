@@ -68,6 +68,8 @@ var Snake = {
             shading: THREE.FlatShading,
             emissive: 0x617154
         });
+        this.speed = 0.02; //speed, in arc length per frame
+        this.tailDistance = 15; //distance apart each tail node is, in frames
         this.segments = [];
         
         this.queue = [];
@@ -88,7 +90,6 @@ var Snake = {
 
         scene.add(child.mesh);
         scene.add(child2.mesh);
-
         scene.add(head.mesh);
     },
 
@@ -101,66 +102,59 @@ var Snake = {
     },
 
     updatePosition: function (u) {
-        for (var i = 0; i < this.segments.length; i++) {
-            this.gravityAttract(this.segments[i].mesh);
-        }
         var head = this.segments[0];
-        if (keyPressed == '38') {
-            // up arrow
+        if (keyPressed) {
             head.prevPos = head.mesh.position.clone();
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), -0.01);
-            this.gravityAttract(head.mesh);
-            
-            this.updateTail();
-
-        } else if (keyPressed == '40') {
-            // down arrow
-            head.prevPos = head.mesh.position.clone();
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), 0.01);
-            this.gravityAttract(head.mesh);
-            
-            this.updateTail();
-
-        } else if (keyPressed == '37') {
-            // left arrow
-            head.prevPos = head.mesh.position.clone();
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), -0.01);
-            this.gravityAttract(head.mesh);
-            
-            this.updateTail();
-
-        } else if (keyPressed == '39') {
-            // right arrow
-            head.prevPos = head.mesh.position.clone();
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), 0.01);
+            this.rotateAxisAngle();
             this.gravityAttract(head.mesh);       
-            
             this.updateTail();
         }
-
-        //update the positions of the segments accordingly
-
     },
 
+    rotateAxisAngle: function() {
+        var head = this.segments[0];
+        var headPos = head.mesh.position.clone();
+        var radius;
+        var theta;
+        
+        if (keyPressed == '38') {
+            // up arrow
+            radius = Math.sqrt(headPos.length() * headPos.length() - headPos.x * headPos.x);
+            theta = -1 * (this.speed / radius);
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), theta);            
+        } else if (keyPressed == '40') {
+            // down arrow
+            radius = Math.sqrt(headPos.length() * headPos.length() - headPos.x * headPos.x);
+            theta = (this.speed / radius);
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), theta);
+        } else if (keyPressed == '37') {
+            // left arrow
+            radius = Math.sqrt(headPos.length() * headPos.length() - headPos.y * headPos.y);
+            theta = -1 * (this.speed / radius);
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), theta);
+        } else if (keyPressed == '39') {
+            // right arrow
+//            console.log(headPos.y);
+            radius = Math.sqrt(headPos.length() * headPos.length() - headPos.y * headPos.y);
+            theta = (this.speed / radius);
+            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), theta);
+        }
+    },
+    
     updateTail: function () {
         var headPos = this.segments[0].mesh.position.clone();
-        console.log(headPos);
         this.queue.unshift(headPos);
-        
-        scene.updateMatrixWorld();
-        headPos.applyMatrix4(scene.matrixWorld);
-        console.log(headPos);
 
-        console.log(this.segments[0].mesh.position);
-        if (this.queue.length > this.segments.length * 20) {
+//        console.log(this.segments[0].mesh.position);
+        if (this.queue.length > this.segments.length * this.tailDistance) {
             
-            if (this.queue.length > ((this.segments.length + 2) * 20)) {
+            if (this.queue.length > ((this.segments.length + 2) * this.tailDistance)) {
                 this.queue.pop();
             }
 
             for (var i = 0; i < this.segments.length; i++) {
                 var node = this.segments[i];
-                var newPos = this.queue[i * 20];
+                var newPos = this.queue[i * this.tailDistance];
 //                console.log(node.name);
 //                console.log(newPos);
                 node.setPos(newPos);
@@ -203,9 +197,6 @@ var Snake = {
         if (intersectionPoint != undefined) {
 
             offset = rayDir.negate().multiplyScalar(Snake.radius);
-            //        console.log(Snake.radius);
-            //        console.log(intersectionPoint.point);
-
             node.position.x = offset.x + intersectionPoint.point.x;
             node.position.y = offset.y + intersectionPoint.point.y;
             node.position.z = offset.z + intersectionPoint.point.z;
