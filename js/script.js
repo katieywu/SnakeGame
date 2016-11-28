@@ -5,32 +5,72 @@ document.onkeydown = checkKey;
 
 function checkKey(e) {
     e = e || window.event;
-
     //check if the input matches an arrow key, else don't update the keyPressed, allowing the snake to keep moving on its original path
     if (e.keyCode == '38' || e.keyCode == '40' || e.keyCode == '37' || e.keyCode == '39') {
         keyPressed = e.keyCode;
-    }
+    } 
+//    else if (e.keyCode == '65') { //if the 'a' key is pressed
+//        rotateCameraLeft(true);
+//    } else if (e.keyCode == '68') { //if the 'd' key is pressed
+//        rotateCameraLeft(false);
+//    }
 }
+
+//var map = {}; // You could also use an array
+//document.onkeydown = function(e){
+//    e = e || event; // to deal with IE
+//    map[e.keyCode] = e.type == 'keydown';
+//    /* insert conditional here */
+//    console.log(e.keyCode);
+//    
+//    //check if the input matches an arrow key, else don't update the keyPressed, allowing the snake to keep moving on its original path
+//    if (e.keyCode == '38' || e.keyCode == '40' || e.keyCode == '37' || e.keyCode == '39') {
+//        keyPressed = e.keyCode;
+//    } 
+//}
+
 
 //The basics of a 3D scene, the scene graph, camera, light, and renderer
 var scene = new THREE.Scene();
+
+//Set up camera and camera pivot, so we can yaw the camera around Y Axis
 var camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000 );
+camera.position.z = 10;
+
+//scene.add(camera);
+
+//var cameraPivot = new THREE.Object3D();
+//scene.add(cameraPivot);
+//cameraPivot.add(camera);
+//camera.lookAt( cameraPivot.position );
+//controls = new THREE.TrackballControls( camera );
+//				controls.rotateSpeed = 1.0;
+//				controls.zoomSpeed = 1.2;
+//				controls.panSpeed = 0.8;
+//controls.keys = [ 65, 83, 68 ];
+//				controls.addEventListener( 'change', update );
+
+var Y_AXIS = new THREE.Vector3( 0, 1, 0 );
+var X_AXIS = new THREE.Vector3( 1, 0, 0 );
 
 //var dirLight = new THREE.DirectionalLight( 0xefefff, 0.1 );
 //dirLight.position.set( 1, 1, 1 ).normalize();
 //dirLight.castShadow = true;
 
-camera.position.z = 10;
-
 var light = new THREE.HemisphereLight( 0xffffdf, 0x080820, 1 );
 scene.add(light);
-
 
 var renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x93cbc6);
 renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
+
+controls = new THREE.OrbitControls( camera, renderer.domElement );
+				//controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
+				controls.enableDamping = true;
+				controls.dampingFactor = 0.25;
+				controls.enableZoom = false;
 
 var Environment = {
     init: function () {
@@ -101,7 +141,7 @@ var Snake = {
         this.children.push(new THREE.Vector3(-0.1, 0, 1.7595));
     },
 
-    updatePosition: function (u) {
+    updatePosition: function () {
         var head = this.segments[0];
         if (keyPressed) {
             head.prevPos = head.mesh.position.clone();
@@ -121,23 +161,21 @@ var Snake = {
             // up arrow
             radius = Math.sqrt(headPos.length() * headPos.length() - headPos.x * headPos.x);
             theta = -1 * (this.speed / radius);
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), theta);            
+            rotateAboutWorldAxis(head.mesh, X_AXIS, theta);            
         } else if (keyPressed == '40') {
             // down arrow
             radius = Math.sqrt(headPos.length() * headPos.length() - headPos.x * headPos.x);
             theta = (this.speed / radius);
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(1, 0, 0), theta);
+            rotateAboutWorldAxis(head.mesh, X_AXIS, theta);
         } else if (keyPressed == '37') {
             // left arrow
             radius = Math.sqrt(headPos.length() * headPos.length() - headPos.y * headPos.y);
             theta = -1 * (this.speed / radius);
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), theta);
+            rotateAboutWorldAxis(head.mesh, Y_AXIS, theta);
         } else if (keyPressed == '39') {
-            // right arrow
-//            console.log(headPos.y);
             radius = Math.sqrt(headPos.length() * headPos.length() - headPos.y * headPos.y);
             theta = (this.speed / radius);
-            rotateAboutWorldAxis(head.mesh, new THREE.Vector3(0, 1, 0), theta);
+            rotateAboutWorldAxis(head.mesh, Y_AXIS, theta);
         }
     },
     
@@ -145,7 +183,6 @@ var Snake = {
         var headPos = this.segments[0].mesh.position.clone();
         this.queue.unshift(headPos);
 
-//        console.log(this.segments[0].mesh.position);
         if (this.queue.length > this.segments.length * this.tailDistance) {
             
             if (this.queue.length > ((this.segments.length + 2) * this.tailDistance)) {
@@ -155,8 +192,6 @@ var Snake = {
             for (var i = 0; i < this.segments.length; i++) {
                 var node = this.segments[i];
                 var newPos = this.queue[i * this.tailDistance];
-//                console.log(node.name);
-//                console.log(newPos);
                 node.setPos(newPos);
             }
         } else {
@@ -237,29 +272,22 @@ function rotateAboutWorldAxis(mesh, axis, angle) {
 Snake.init(0.15);
 Environment.init();
 
-
+function rotateCameraLeft(toLeft) {
+    if (toLeft) {
+        cameraPivot.rotateOnAxis(Y_AXIS, -0.1);
+    } else {
+        cameraPivot.rotateOnAxis(Y_AXIS, 0.1);
+    }
+}
 
 //Update loop that gets called at 60fps,
 //Calculate animations, and render the scene
-var deltaTime = 0;
 function update() {
-    var u; //normalized time
-    if (deltaTime == 60) {
-        deltaTime = 0;
-    }
-    
-    u = deltaTime++ / 60.0;
 
     requestAnimationFrame(update);
-    
-//    Environment.animate();
-//    Snake.animate();
-    
+    controls.update();
     //call updateposition
-    Snake.updatePosition(u);
-    
-//    update gravity so snake always sticks to surface
-//    Snake.gravityAttract(Snake.mesh);
+    Snake.updatePosition();
     
     renderer.render(scene, camera);
 };
