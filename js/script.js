@@ -7,28 +7,16 @@ function checkKey(e) {
     e = e || window.event;
     //check if the input matches an arrow key, else don't update the keyPressed, allowing the snake to keep moving on its original path
     if (e.keyCode == '38' || e.keyCode == '40' || e.keyCode == '37' || e.keyCode == '39') {
+//        keyPressed = e.keyCode;
+    } else if (e.keyCode == '87' || e.keyCode == '83' || e.keyCode == '65' || e.keyCode == '68') {
         keyPressed = e.keyCode;
     } 
-//    else if (e.keyCode == '65') { //if the 'a' key is pressed
+    else if (e.keyCode == '65') { //if the 'a' key is pressed
 //        rotateCameraLeft(true);
-//    } else if (e.keyCode == '68') { //if the 'd' key is pressed
+    } else if (e.keyCode == '68') { //if the 'd' key is pressed
 //        rotateCameraLeft(false);
-//    }
+    }
 }
-
-//var map = {}; // You could also use an array
-//document.onkeydown = function(e){
-//    e = e || event; // to deal with IE
-//    map[e.keyCode] = e.type == 'keydown';
-//    /* insert conditional here */
-//    console.log(e.keyCode);
-//    
-//    //check if the input matches an arrow key, else don't update the keyPressed, allowing the snake to keep moving on its original path
-//    if (e.keyCode == '38' || e.keyCode == '40' || e.keyCode == '37' || e.keyCode == '39') {
-//        keyPressed = e.keyCode;
-//    } 
-//}
-
 
 //The basics of a 3D scene, the scene graph, camera, light, and renderer
 var scene = new THREE.Scene();
@@ -36,26 +24,21 @@ var scene = new THREE.Scene();
 //Set up camera and camera pivot, so we can yaw the camera around Y Axis
 var camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000 );
 camera.position.z = 10;
-
-//scene.add(camera);
-
+//
 //var cameraPivot = new THREE.Object3D();
 //scene.add(cameraPivot);
 //cameraPivot.add(camera);
 //camera.lookAt( cameraPivot.position );
-//controls = new THREE.TrackballControls( camera );
-//				controls.rotateSpeed = 1.0;
-//				controls.zoomSpeed = 1.2;
-//				controls.panSpeed = 0.8;
-//controls.keys = [ 65, 83, 68 ];
-//				controls.addEventListener( 'change', update );
+
 
 var Y_AXIS = new THREE.Vector3( 0, 1, 0 );
 var X_AXIS = new THREE.Vector3( 1, 0, 0 );
 
-//var dirLight = new THREE.DirectionalLight( 0xefefff, 0.1 );
-//dirLight.position.set( 1, 1, 1 ).normalize();
-//dirLight.castShadow = true;
+var dirLight = new THREE.DirectionalLight( 0xefefff, 0.3 );
+dirLight.position.set( 19, 3, 3 ).normalize();
+dirLight.castShadow = true;
+dirLight.shadowCameraVisible = true;
+scene.add(dirLight);
 
 var light = new THREE.HemisphereLight( 0xffffdf, 0x080820, 1 );
 scene.add(light);
@@ -66,11 +49,22 @@ renderer.setClearColor(0x93cbc6);
 renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-controls = new THREE.OrbitControls( camera, renderer.domElement );
-				//controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
-				controls.enableDamping = true;
-				controls.dampingFactor = 0.25;
-				controls.enableZoom = false;
+renderer.shadowMapEnabled = true;
+renderer.shadowMapSoft = true;
+
+renderer.shadowCameraNear = 3;
+renderer.shadowCameraFar = camera.far;
+renderer.shadowCameraFov = 50;
+
+renderer.shadowMapBias = 0.0039;
+renderer.shadowMapDarkness = 0.5;
+renderer.shadowMapWidth = 1024;
+renderer.shadowMapHeight = 1024;
+
+controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.25;
+controls.enableZoom = false;
 
 var Environment = {
     init: function () {
@@ -91,11 +85,6 @@ var Environment = {
         scene.add(this.mesh);
     },
 
-    animate: function () {
-        this.mesh.rotation.x += 0.01;
-        this.mesh.rotation.y += 0.01;
-        //        this.mesh.position.x += 0.01;
-    }
 };
 
 var Snake = {
@@ -157,22 +146,22 @@ var Snake = {
         var radius;
         var theta;
         
-        if (keyPressed == '38') {
+        if (keyPressed == '87') {
             // up arrow
             radius = Math.sqrt(headPos.length() * headPos.length() - headPos.x * headPos.x);
             theta = -1 * (this.speed / radius);
             rotateAboutWorldAxis(head.mesh, X_AXIS, theta);            
-        } else if (keyPressed == '40') {
+        } else if (keyPressed == '83') {
             // down arrow
             radius = Math.sqrt(headPos.length() * headPos.length() - headPos.x * headPos.x);
             theta = (this.speed / radius);
             rotateAboutWorldAxis(head.mesh, X_AXIS, theta);
-        } else if (keyPressed == '37') {
+        } else if (keyPressed == '65') {
             // left arrow
             radius = Math.sqrt(headPos.length() * headPos.length() - headPos.y * headPos.y);
             theta = -1 * (this.speed / radius);
             rotateAboutWorldAxis(head.mesh, Y_AXIS, theta);
-        } else if (keyPressed == '39') {
+        } else if (keyPressed == '68') {
             radius = Math.sqrt(headPos.length() * headPos.length() - headPos.y * headPos.y);
             theta = (this.speed / radius);
             rotateAboutWorldAxis(head.mesh, Y_AXIS, theta);
