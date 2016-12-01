@@ -1,4 +1,7 @@
 # Gravity Snake - SnakeGame in 3D
+
+I spoke with Naz, and he said it was alright if I used three.js to do 3D snake, since it doens't assist with Javascript at all, but mostly to cover WebGL.
+
 1. Instructions 
 
  a. Running the program: Run the index.html file in a web browser (Chrome works best) 
